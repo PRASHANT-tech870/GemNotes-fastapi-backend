@@ -33,7 +33,7 @@ class BulletPointResponse(BulletPointBase):
     updated_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class NoteBase(BaseModel):
     title: str
@@ -51,7 +51,7 @@ class NoteResponse(NoteBase):
     bullet_points: List[BulletPointResponse] = []
     
     class Config:
-        orm_mode = True
+       from_attributes = True
 
 # Dependencies
 def get_db():
