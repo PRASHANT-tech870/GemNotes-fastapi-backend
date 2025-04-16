@@ -10,6 +10,12 @@ from sqlalchemy.orm import Session
 from starlette import status
 from jose import JWTError, jwt
 from pydantic import BaseModel
+import uuid
+
+import requests
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
 
 
 router = APIRouter(
@@ -32,6 +38,9 @@ class CreateUserRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    
+class GoogleAuthRequest(BaseModel):
+    token: str
 
 def get_db():
     db = SessionLocal()
@@ -99,3 +108,73 @@ async def get_current_user(token: Annotated[str,Depends(oauth2_bearer)]):
         return {"username": username, "id": user_id}
     except JWTError:
         raise credentials_exception
+    
+
+@router.post("/google", response_model=Token)
+async def google_login(google_data: GoogleAuthRequest, db: db_dependency):
+    try:
+        # Verify the Google token
+        idinfo = id_token.verify_oauth2_token(
+            google_data.token, google_requests.Request(), 
+            "219445210127-m2l1od9935os0qkugrlo2afq9nf2ene2.apps.googleusercontent.com")  # Same client ID as frontend
+        
+        # Extract user info from token
+        email = idinfo['email']
+        
+        # Check if user exists
+        user = db.query(Users).filter(Users.username == email).first()
+        
+        # If user doesn't exist, create one
+        if not user:
+            user = Users(
+                username=email,
+                hashed_password=bcrypt_context.hash(str(uuid.uuid4()))  # Random secure password
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        # Generate JWT token for the user
+        token = create_access_token(user.username, user.id, timedelta(minutes=20))
+        
+        return {"access_token": token, "token_type": "bearer"}
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid Google token: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+@router.post("/google-signup")
+async def google_signup(google_data: GoogleAuthRequest, db: db_dependency):
+    try:
+        # Verify the Google token
+        idinfo = id_token.verify_oauth2_token(
+            google_data.token, google_requests.Request(), 
+            "219445210127-m2l1od9935os0qkugrlo2afq9nf2ene2.apps.googleusercontent.com")  # Same client ID as frontend
+        
+        # Extract user info from token
+        email = idinfo['email']
+        
+        # Check if user already exists
+        existing_user = db.query(Users).filter(Users.username == email).first()
+        if existing_user:
+            return {"message": "User already exists. Please login."}
+        
+        # Create new user
+        new_user = Users(
+            username=email,
+            hashed_password=bcrypt_context.hash(str(uuid.uuid4()))  # Random secure password
+        )
+        db.add(new_user)
+        db.commit()
+        
+        return {"message": "User created successfully"}
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to process Google signup: {str(e)}",
+        )

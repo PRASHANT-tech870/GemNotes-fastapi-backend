@@ -2,6 +2,7 @@ from typing import Annotated
 from fastapi import FastAPI, Depends, HTTPException, status
 from database import SessionLocal, engine
 import auth
+import notes
 from sqlalchemy.orm import Session
 import models
 from auth import get_current_user
@@ -12,7 +13,8 @@ app = FastAPI()
 
 origins = [
     'http://localhost:5173',
-    
+    'https://accounts.google.com',
+    'https://www.googleapis.com',
 ]
 
 app.add_middleware(CORSMiddleware,
@@ -26,6 +28,7 @@ app.add_middleware(CORSMiddleware,
 
 
 app.include_router(auth.router)
+app.include_router(notes.router)
 models.Base.metadata.create_all(bind=engine)
 
 def get_db():
