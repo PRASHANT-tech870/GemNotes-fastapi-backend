@@ -1,0 +1,24 @@
+# FastAPI and dependencies
+fastapi
+uvicorn
+python-multipart
+pydantic
+starlette
+
+# Database
+sqlalchemy
+alembic
+
+# Authentication
+passlib
+bcrypt
+python-jose
+cryptography
+
+# Google Authentication and Gemini API
+google-auth
+google-genai
+requests
+
+# CORS support
+python-dotenv
