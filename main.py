@@ -15,6 +15,7 @@ origins = [
     'http://localhost:5173',
     'https://accounts.google.com',
     'https://www.googleapis.com',
+    'https://gemnotes.netlify.app'
 ]
 
 app.add_middleware(CORSMiddleware,
