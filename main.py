@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 origins = [
     'http://localhost:5173',
